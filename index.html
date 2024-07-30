@@ -4,13 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulação de Sensores</title>
+    <style>
+        .sensor-data {
+            margin: 10px 0;
+        }
+        canvas {
+            width: 100%;
+            height: 200px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <h1>Simulação de Sensores do Carro</h1>
     <button onclick="startSimulation()">Iniciar Simulação</button>
+    <div id="sensor-data-container">
+        <div class="sensor-data" id="velocidade">Velocidade: </div>
+        <div class="sensor-data" id="contaGiros">Conta Giros: </div>
+        <div class="sensor-data" id="nivelCombustivel">Nível do Combustível: </div>
+        <div class="sensor-data" id="temperaturaMotor">Temperatura do Motor: </div>
+        <div class="sensor-data" id="luzesFarol">Luzes do Farol: </div>
+        <div class="sensor-data" id="setas">Setas: </div>
+        <div class="sensor-data" id="alertas">Alertas: </div>
+    </div>
+    <div>
+        <canvas id="velocidadeChart"></canvas>
+        <canvas id="contaGirosChart"></canvas>
+        <canvas id="nivelCombustivelChart"></canvas>
+        <canvas id="temperaturaMotorChart"></canvas>
+    </div>
 
     <script>
         let socket;
+        let velocidadeChart, contaGirosChart, nivelCombustivelChart, temperaturaMotorChart;
 
         function startSimulation() {
             socket = new WebSocket('ws://localhost:8080');
@@ -19,7 +45,8 @@
                 simulateSensors();
             };
             socket.onmessage = function(event) {
-                console.log('Mensagem do servidor: ' + event.data);
+                const sensorData = JSON.parse(event.data);
+                updateSensorData(sensorData);
             };
             socket.onclose = function(event) {
                 console.log('Conexão fechada');
@@ -48,7 +75,135 @@
                     alertas: sensors.alertas()
                 };
                 socket.send(JSON.stringify(data));
-            }, 1000);
+            }, 1000);  // Atualiza a cada 1000 milissegundos (1 segundo)
+        }
+
+        function updateSensorData(data) {
+            document.getElementById('velocidade').textContent = 'Velocidade: ' + data.velocidade + ' km/h';
+            document.getElementById('contaGiros').textContent = 'Conta Giros: ' + data.contaGiros + ' rpm';
+            document.getElementById('nivelCombustivel').textContent = 'Nível do Combustível: ' + data.nivelCombustivel + '%';
+            document.getElementById('temperaturaMotor').textContent = 'Temperatura do Motor: ' + data.temperaturaMotor + '°C';
+            document.getElementById('luzesFarol').textContent = 'Luzes do Farol: ' + data.luzesFarol;
+            document.getElementById('setas').textContent = 'Setas: ' + data.setas;
+            document.getElementById('alertas').textContent = 'Alertas: ' + data.alertas;
+
+            addDataToChart(velocidadeChart, data.velocidade);
+            addDataToChart(contaGirosChart, data.contaGiros);
+            addDataToChart(nivelCombustivelChart, data.nivelCombustivel);
+            addDataToChart(temperaturaMotorChart, data.temperaturaMotor);
+        }
+
+        function addDataToChart(chart, data) {
+            chart.data.labels.push('');
+            chart.data.datasets.forEach((dataset) => {
+                dataset.data.push(data);
+            });
+            if (chart.data.labels.length > 20) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach((dataset) => {
+                    dataset.data.shift();
+                });
+            }
+            chart.update();
+        }
+
+        window.onload = function() {
+            const ctx1 = document.getElementById('velocidadeChart').getContext('2d');
+            const ctx2 = document.getElementById('contaGirosChart').getContext('2d');
+            const ctx3 = document.getElementById('nivelCombustivelChart').getContext('2d');
+            const ctx4 = document.getElementById('temperaturaMotorChart').getContext('2d');
+
+            velocidadeChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Velocidade (km/h)',
+                        data: [],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            beginAtZero: true,
+                            max: 200
+                        }
+                    }
+                }
+            });
+
+            contaGirosChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Conta Giros (rpm)',
+                        data: [],
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            beginAtZero: true,
+                            max: 8000
+                        }
+                    }
+                }
+            });
+
+            nivelCombustivelChart = new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Nível do Combustível (%)',
+                        data: [],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+
+            temperaturaMotorChart = new Chart(ctx4, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Temperatura do Motor (°C)',
+                        data: [],
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            beginAtZero: true,
+                            max: 120
+                        }
+                    }
+                }
+            });
         }
     </script>
 </body>
