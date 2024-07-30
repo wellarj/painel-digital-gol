@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulação de Sensores</title>
+</head>
+<body>
+    <h1>Simulação de Sensores do Carro</h1>
+    <button onclick="startSimulation()">Iniciar Simulação</button>
+
+    <script>
+        let socket;
+
+        function startSimulation() {
+            socket = new WebSocket('ws://localhost:8080');
+            socket.onopen = function(event) {
+                console.log('Conexão estabelecida');
+                simulateSensors();
+            };
+            socket.onmessage = function(event) {
+                console.log('Mensagem do servidor: ' + event.data);
+            };
+            socket.onclose = function(event) {
+                console.log('Conexão fechada');
+            };
+        }
+
+        function simulateSensors() {
+            const sensors = {
+                velocidade: () => Math.floor(Math.random() * 200),
+                contaGiros: () => Math.floor(Math.random() * 8000),
+                nivelCombustivel: () => Math.floor(Math.random() * 100),
+                temperaturaMotor: () => Math.floor(Math.random() * 120),
+                luzesFarol: () => Math.random() > 0.5 ? 'on' : 'off',
+                setas: () => Math.random() > 0.5 ? 'left' : 'right',
+                alertas: () => Math.random() > 0.5 ? 'alerta' : 'normal'
+            };
+
+            setInterval(() => {
+                const data = {
+                    velocidade: sensors.velocidade(),
+                    contaGiros: sensors.contaGiros(),
+                    nivelCombustivel: sensors.nivelCombustivel(),
+                    temperaturaMotor: sensors.temperaturaMotor(),
+                    luzesFarol: sensors.luzesFarol(),
+                    setas: sensors.setas(),
+                    alertas: sensors.alertas()
+                };
+                socket.send(JSON.stringify(data));
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
